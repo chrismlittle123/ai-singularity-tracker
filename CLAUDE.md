@@ -33,10 +33,13 @@ data/
 ├── raw/           # Downloaded source data
 └── processed/     # Standardized format (year,month columns)
 
-src/pipeline/
-├── utils.py       # Shared utilities (fetch_fred_data, trend analysis)
-├── ingestion/     # Data download scripts  
-└── processing/    # Data transformation scripts
+src/
+├── dashboard/     # Streamlit visualization app
+│   └── app.py     # Interactive dashboard with AI Singularity Score
+└── pipeline/
+    ├── utils.py       # Shared utilities (fetch_fred_data, trend analysis)
+    ├── ingestion/     # Data download scripts  
+    └── processing/    # Data transformation scripts
 ```
 
 ## Common Development Commands
@@ -64,6 +67,9 @@ uv run python src/pipeline/ingestion/fetch_accountants_employed.py
 uv run python src/pipeline/processing/process_labor_share.py
 uv run python src/pipeline/processing/process_real_gdp_per_capita.py
 uv run python src/pipeline/processing/process_accountants_employed.py
+
+# Dashboard
+uv run streamlit run src/dashboard/app.py
 ```
 
 ## Data Sources & Formats
@@ -105,7 +111,7 @@ uv run python src/pipeline/processing/process_accountants_employed.py
 - **Python**: >=3.12 required
 - **Package Manager**: uv (modern pip replacement)
 - **Linting**: ruff with 100 character line limit
-- **Dependencies**: pandas, requests, python-dateutil
+- **Dependencies**: pandas, requests, python-dateutil, streamlit, plotly
 
 ## File Naming Conventions
 

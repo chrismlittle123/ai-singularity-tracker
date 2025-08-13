@@ -16,9 +16,10 @@ def get_missing_months():
     # Get current date and exclude current month
     current_date = datetime.now()
     
-    # Generate list of past 36 months (excluding current month)
+    # Generate list of past 40 months (excluding current month)
+    # Need 40 months to ensure 14 quarters of quarterly-aligned data
     past_months = []
-    for i in range(1, 37):  # 1 to 36 months back, inclusive
+    for i in range(1, 41):  # 1 to 40 months back, inclusive
         month_date = current_date - relativedelta(months=i)
         past_months.append((month_date.year, month_date.month))
     
@@ -122,13 +123,13 @@ def fetch_month_data(year, month):
 
 
 def fetch_accountants_employed_data():
-    """Fetch accountants and auditors employment data for missing months in past 36 months."""
-    print("Checking for missing months in past 36 months...")
+    """Fetch accountants and auditors employment data for missing months in past 40 months."""
+    print("Checking for missing months in past 40 months...")
     
     missing_months = get_missing_months()
     
     if not missing_months:
-        print("✓ All months in the past 36 months already have data!")
+        print("✓ All months in the past 40 months already have data!")
         return
     
     print(f"\nFetching data for {len(missing_months)} missing months...")
