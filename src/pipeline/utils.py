@@ -1,13 +1,68 @@
 from io import StringIO
 from pathlib import Path
+from datetime import datetime
+from dateutil.relativedelta import relativedelta
 
 import pandas as pd
 import requests
 
 
+def get_missing_quarters(data_name: str, target_quarters: int = 14) -> list:
+    """
+    Identify which quarters in the past N quarters are missing from raw data.
+    
+    Args:
+        data_name: Name for the dataset (used in file naming)
+        target_quarters: Number of quarters to check (default: 14)
+    
+    Returns:
+        List of (year, quarter) tuples that are missing
+    """
+    data_dir = Path(f"data/raw/{data_name}")
+    
+    # Get current quarter and exclude it
+    current_date = datetime.now()
+    current_quarter = (current_date.month - 1) // 3 + 1
+    current_year = current_date.year
+    
+    # Generate list of past N quarters (excluding current quarter)
+    past_quarters = []
+    quarter_date = current_date
+    for i in range(target_quarters):
+        quarter_date = quarter_date - relativedelta(months=3)
+        quarter_num = (quarter_date.month - 1) // 3 + 1
+        past_quarters.append((quarter_date.year, quarter_num))
+    
+    # Check existing data to see what quarters we have
+    existing_quarters = set()
+    if data_dir.exists():
+        for file_path in data_dir.glob("*.csv"):
+            if "quarters" in file_path.stem:
+                # Try to read the file and extract quarters from the data
+                try:
+                    df = pd.read_csv(file_path)
+                    if 'date' in df.columns:
+                        df['date'] = pd.to_datetime(df['date'])
+                        for _, row in df.iterrows():
+                            date = row['date']
+                            quarter = (date.month - 1) // 3 + 1
+                            existing_quarters.add((date.year, quarter))
+                except Exception:
+                    pass  # Skip files that can't be read
+    
+    # Find missing quarters from our target list
+    missing_quarters = [q for q in past_quarters if q not in existing_quarters]
+    
+    print(f"Found data for {len(existing_quarters)} quarters: {sorted(existing_quarters)}")
+    print(f"Missing {len(missing_quarters)} quarters from past {target_quarters}: {sorted(missing_quarters)}")
+    
+    return missing_quarters
+
+
 def fetch_fred_data(url: str, data_name: str, column_name: str, quarters: int = 14) -> pd.DataFrame:
     """
     Fetch economic data from FRED and save last N quarters to raw directory.
+    Only fetches data if we don't already have the past N quarters.
 
     Args:
         url: FRED CSV download URL
@@ -18,9 +73,21 @@ def fetch_fred_data(url: str, data_name: str, column_name: str, quarters: int = 
     Returns:
         DataFrame with the last N quarters of data
     """
-    # Create data directory
+    # Check if we need to fetch new data
+    missing_quarters = get_missing_quarters(data_name, quarters)
+    
     data_dir = Path(f"data/raw/{data_name}")
     data_dir.mkdir(parents=True, exist_ok=True)
+    
+    output_path = data_dir / f"{data_name}_last_{quarters}_quarters.csv"
+    
+    # If we have all the quarters we need, just load existing data
+    if not missing_quarters and output_path.exists():
+        print(f"✓ All {quarters} quarters already exist for {data_name}")
+        df_existing = pd.read_csv(output_path)
+        df_existing['date'] = pd.to_datetime(df_existing['date'])
+        print(f"✓ Loaded existing data from {output_path}")
+        return df_existing
 
     print(f"Downloading {data_name} data from FRED...")
 
@@ -49,7 +116,6 @@ def fetch_fred_data(url: str, data_name: str, column_name: str, quarters: int = 
         print(f"  • {row['date'].strftime('%Y Q%q')}: {row[column_name]:.2f}")
 
     # Save only the last N quarters to raw directory
-    output_path = data_dir / f"{data_name}_last_{quarters}_quarters.csv"
     df_recent.to_csv(output_path, index=False)
     print(f"\n✓ Last {quarters} quarters saved to {output_path}")
 
