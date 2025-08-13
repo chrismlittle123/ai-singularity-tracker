@@ -92,11 +92,11 @@ def process_accountants_employed():
         ).round(1)
 
         # Save single output file to processed directory
-        output_path = processed_dir / "accountants_employment_summary.csv"
+        output_path = processed_dir / "accountants_employed_processed.csv"
         summary_df.to_csv(output_path, index=False)
 
-        print(f"\n✓ Summary saved to {output_path}")
-        print("\nSummary table:")
+        print(f"\n✓ Processed data saved to {output_path}")
+        print("\nProcessed table:")
         print(summary_df.to_string(index=False))
 
         return summary_df
