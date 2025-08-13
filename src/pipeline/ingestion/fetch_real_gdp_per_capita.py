@@ -8,10 +8,7 @@ def fetch_real_gdp_per_capita_data():
 
     # Fetch data using utility
     df_recent = fetch_fred_data(
-        url=url,
-        data_name="real_gdp_per_capita",
-        column_name="real_gdp_per_capita",
-        quarters=14
+        url=url, data_name="real_gdp_per_capita", column_name="real_gdp_per_capita", quarters=14
     )
 
     # Analyze trends

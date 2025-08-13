@@ -1,7 +1,7 @@
 # ai-singularity-tracker
 
 
-Compare the value one year ago to value now, then two years ago to the value now. if both show downward trend for labor share of income + accountants and an upward trend for real gdp per capita over these two time periods. then this is a strong signal.
+Compare the value one year ago to value now, then two years ago to the value now, then three years. if they show downward trend for labor share of income + accountants and an upward trend for real gdp per capita over these time periods. then this is a strong signal.
 
 https://fred.stlouisfed.org/series/PRS85006173
 
@@ -28,3 +28,8 @@ https://www2.census.gov/programs-surveys/cps/datasets/2025/basic/2025_Basic_CPS_
 https://www2.census.gov/programs-surveys/cps/datasets/2025/basic/jul25pub.csv
 
 https://www2.census.gov/programs-surveys/cps/datasets/2025/basic/jun25pub.csv
+
+
+
+Plan: Go back to at least three years of data, or 14 quarters (Q1 2022 - Q2 2025)
+

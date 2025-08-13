@@ -8,10 +8,7 @@ def fetch_labor_share_data():
 
     # Fetch data using utility
     df_recent = fetch_fred_data(
-        url=url,
-        data_name="labor_share",
-        column_name="labor_share_index",
-        quarters=14
+        url=url, data_name="labor_share", column_name="labor_share_index", quarters=14
     )
 
     # Analyze trends
