@@ -19,7 +19,7 @@ st.markdown("**Monitoring economic indicators for signs of AI-driven technologic
 
 @st.cache_data
 def load_data():
-    """Load all three processed datasets."""
+    """Load all four processed datasets."""
     data_dir = Path("data/processed")
     
     # Load labor share data
@@ -37,7 +37,13 @@ def load_data():
     accountants_df = pd.read_csv(accountants_path)
     accountants_df['date'] = pd.to_datetime(accountants_df[['year', 'month']].assign(day=1))
     
-    return labor_share_df, gdp_df, accountants_df
+    # Load graduate unemployment rate data
+    unemployment_path = data_dir / "graduate_unemployment_rate" / "graduate_unemployment_rate_processed.csv"
+    unemployment_df = pd.read_csv(unemployment_path) if unemployment_path.exists() else None
+    if unemployment_df is not None:
+        unemployment_df['date'] = pd.to_datetime(unemployment_df[['year', 'month']].assign(day=1))
+    
+    return labor_share_df, gdp_df, accountants_df, unemployment_df
 
 def align_to_quarterly(df, metric_col):
     """Convert monthly data to quarterly by taking the last month of each quarter."""
@@ -67,25 +73,78 @@ def calculate_yoy_changes(df, metric_col):
     
     return changes
 
-def calculate_singularity_score(labor_changes, gdp_changes, accountants_changes):
-    """Calculate AI Singularity Score based on directional changes."""
+def calculate_singularity_score(labor_changes, gdp_changes, accountants_changes, unemployment_changes=None):
+    """Calculate AI Singularity Score with proper normalization and weighting."""
     scores = {}
+    
+    # Define weights for each metric (must sum to 1.0)
+    # Higher weight = more important for detecting AI singularity
+    weights = {
+        'labor_share': 0.30,      # Labor's declining share is critical signal
+        'gdp_per_capita': 0.25,   # Rising productivity despite job losses
+        'accountants': 0.20,      # Direct measure of AI replacing knowledge workers
+        'unemployment': 0.25      # Overall labor market health
+    }
+    
+    # Historical statistics for normalization (based on typical economic ranges)
+    # These represent typical standard deviations for % changes
+    std_devs = {
+        'labor_share': 2.5,       # Labor share typically varies ±2.5% annually
+        'gdp_per_capita': 3.0,    # GDP per capita typically varies ±3% annually  
+        'accountants': 5.0,       # Employment can vary ±5% annually
+        'unemployment': 15.0      # Unemployment rate changes can be volatile
+    }
     
     for period in ['1_year', '2_year', '3_year']:
         if all(period in changes for changes in [labor_changes, gdp_changes, accountants_changes]):
-            # Positive signals towards singularity:
-            # - Labor share going down (negative change is good)
-            # - GDP per capita going up (positive change is good) 
-            # - Accountants employment going down (negative change is good)
+            # Calculate z-scores for each metric
+            # Z-score = (value - mean) / std_dev, where mean = 0 for % changes
             
-            labor_signal = -labor_changes[period] if period in labor_changes else 0  # Invert: down is good
-            gdp_signal = gdp_changes[period] if period in gdp_changes else 0        # Up is good
-            accountants_signal = -accountants_changes[period] if period in accountants_changes else 0  # Invert: down is good
+            # Labor share: negative change is positive signal
+            labor_z = (-labor_changes[period]) / std_devs['labor_share'] if period in labor_changes else 0
             
-            # Normalize and combine (simple average for now)
-            # Scale to 0-100 range
-            raw_score = (labor_signal + gdp_signal + accountants_signal) / 3
-            normalized_score = max(0, min(100, 50 + raw_score * 2))  # Center at 50, scale appropriately
+            # GDP per capita: positive change is positive signal
+            gdp_z = gdp_changes[period] / std_devs['gdp_per_capita'] if period in gdp_changes else 0
+            
+            # Accountants: negative change is positive signal
+            accountants_z = (-accountants_changes[period]) / std_devs['accountants'] if period in accountants_changes else 0
+            
+            # Unemployment: positive change is positive signal (rising unemployment = AI displacement)
+            unemployment_z = 0
+            if unemployment_changes and period in unemployment_changes:
+                unemployment_z = unemployment_changes[period] / std_devs['unemployment']
+            
+            # Clip z-scores to reasonable range [-3, 3]
+            labor_z = np.clip(labor_z, -3, 3)
+            gdp_z = np.clip(gdp_z, -3, 3)
+            accountants_z = np.clip(accountants_z, -3, 3)
+            unemployment_z = np.clip(unemployment_z, -3, 3)
+            
+            # Calculate weighted average of z-scores
+            if unemployment_changes:
+                weighted_z = (
+                    weights['labor_share'] * labor_z +
+                    weights['gdp_per_capita'] * gdp_z +
+                    weights['accountants'] * accountants_z +
+                    weights['unemployment'] * unemployment_z
+                )
+            else:
+                # Redistribute unemployment weight if data not available
+                adjusted_weights = {
+                    'labor_share': 0.40,
+                    'gdp_per_capita': 0.35,
+                    'accountants': 0.25
+                }
+                weighted_z = (
+                    adjusted_weights['labor_share'] * labor_z +
+                    adjusted_weights['gdp_per_capita'] * gdp_z +
+                    adjusted_weights['accountants'] * accountants_z
+                )
+            
+            # Convert z-score to 0-100 scale
+            # z-score of 0 = 50, z-score of ±3 = 0 or 100
+            normalized_score = 50 + (weighted_z * 50/3)
+            normalized_score = max(0, min(100, normalized_score))
             
             scores[period] = normalized_score
     
@@ -93,7 +152,7 @@ def calculate_singularity_score(labor_changes, gdp_changes, accountants_changes)
 
 # Load data
 try:
-    labor_share_df, gdp_df, accountants_df = load_data()
+    labor_share_df, gdp_df, accountants_df, unemployment_df = load_data()
     
     # Create tabs
     tab1, tab2 = st.tabs(["📈 Time Series Charts", "📊 Year-over-Year Analysis"])
@@ -156,19 +215,46 @@ try:
         fig_acc.update_traces(line=dict(color='#ff7f0e', width=3))
         
         st.plotly_chart(fig_acc, use_container_width=True)
+        
+        # Graduate Unemployment Rate Chart
+        if unemployment_df is not None:
+            st.subheader("📉 Graduate Unemployment Rate")
+            fig_unemp = px.line(
+                unemployment_df,
+                x='date',
+                y='graduate_unemployment_rate',
+                title="Graduate Unemployment Rate",
+                labels={'date': 'Date', 'graduate_unemployment_rate': 'Graduate Unemployment Rate (%)'}
+            )
+            fig_unemp.update_layout(
+                plot_bgcolor='white',
+                paper_bgcolor='white',
+                font=dict(size=12),
+                showlegend=False
+            )
+            fig_unemp.update_traces(line=dict(color='#d62728', width=3))
+            st.plotly_chart(fig_unemp, use_container_width=True)
     
     with tab2:
         st.header("Year-over-Year Analysis & AI Singularity Score")
         
-        # Calculate year-over-year changes (align accountants data to quarterly)
+        # Calculate year-over-year changes (align monthly data to quarterly)
         accountants_quarterly = align_to_quarterly(accountants_df, 'employed_accountants')
         
         labor_changes = calculate_yoy_changes(labor_share_df, 'labor_share_index')
         gdp_changes = calculate_yoy_changes(gdp_df, 'real_gdp_per_capita')
         accountants_changes = calculate_yoy_changes(accountants_quarterly, 'employed_accountants')
         
+        # Handle graduate unemployment if available
+        unemployment_changes = None
+        if unemployment_df is not None:
+            unemployment_quarterly = align_to_quarterly(unemployment_df, 'graduate_unemployment_rate')
+            unemployment_changes = calculate_yoy_changes(unemployment_quarterly, 'graduate_unemployment_rate')
+        
         # Calculate singularity scores
-        singularity_scores = calculate_singularity_score(labor_changes, gdp_changes, accountants_changes)
+        singularity_scores = calculate_singularity_score(
+            labor_changes, gdp_changes, accountants_changes, unemployment_changes
+        )
         
         # Display AI Singularity Score prominently
         st.subheader("🤖 AI Singularity Score")
@@ -209,7 +295,10 @@ try:
         for period, label in zip(periods, period_labels):
             st.markdown(f"**{label} Changes:**")
             
-            col1, col2, col3 = st.columns(3)
+            if unemployment_changes:
+                col1, col2, col3, col4 = st.columns(4)
+            else:
+                col1, col2, col3 = st.columns(3)
             
             # Labor Share
             if period in labor_changes:
@@ -250,42 +339,78 @@ try:
             else:
                 col3.metric("Employed Accountants", "N/A")
             
+            # Graduate Unemployment Rate
+            if unemployment_changes and period in unemployment_changes:
+                change = unemployment_changes[period]
+                delta_color = "normal"  # Green for increases (rising unemployment = AI displacement)
+                col4.metric(
+                    "Graduate Unemployment Rate",
+                    f"{change:+.1f}%",
+                    delta=f"{change:+.1f}%",
+                    delta_color=delta_color
+                )
+            elif unemployment_changes:
+                col4.metric("Graduate Unemployment Rate", "N/A")
+            
             st.divider()
         
         # Add explanation
         st.subheader("📚 Methodology")
         with st.expander("How the AI Singularity Score is calculated"):
             st.markdown("""
-            The AI Singularity Score combines three economic indicators to detect potential AI-driven technological displacement:
+            The AI Singularity Score uses advanced statistical methods to detect potential AI-driven technological displacement:
             
             **🔢 Data Sources & Frequency:**
             - **Labor Share & GDP**: Quarterly data from Federal Reserve (FRED)
-            - **Accountants Employment**: Monthly data from Census Bureau (CPS), aligned to quarterly by using end-of-quarter months (Mar, Jun, Sep, Dec)
+            - **Graduate Unemployment Rate**: Monthly data from Federal Reserve (FRED), aligned to quarterly
+            - **Accountants Employment**: Monthly data from Census Bureau (CPS), aligned to quarterly
             - **Time Periods**: All metrics use quarterly alignment - 1-year (4 quarters), 2-year (8 quarters), 3-year (12 quarters)
             
             **📈 Singularity Signal Logic:**
             - 📉 **Labor Share ↓**: AI replacing workers → labor gets smaller slice of economic pie
             - 📈 **GDP per Capita ↑**: AI automation → higher productivity & wealth per person
             - 📉 **Employed Accountants ↓**: AI targets knowledge work → fewer accounting jobs
+            - 📈 **Graduate Unemployment Rate ↑**: Rising unemployment despite GDP growth → AI displacement
             
-            **🧮 Score Calculation:**
-            1. Calculate year-over-year % change for each metric
-            2. Apply directional scoring:
-               - Labor Share: Negative change = positive signal (invert sign)
-               - GDP per Capita: Positive change = positive signal (keep sign)  
-               - Accountants: Negative change = positive signal (invert sign)
-            3. Average the three signals: `(labor_signal + gdp_signal + accountants_signal) / 3`
-            4. Normalize to 0-100 scale: `50 + (raw_score × 2)`
+            **🧬 Scientific Methodology:**
+            
+            1. **Z-Score Normalization**: Each metric is converted to a z-score to enable comparison:
+               ```
+               z-score = (% change) / (typical standard deviation)
+               ```
+               This accounts for different volatility levels across metrics.
+            
+            2. **Weighted Importance**: Metrics are weighted by their significance:
+               - Labor Share: 30% (critical long-term indicator)
+               - GDP per Capita: 25% (productivity measure)
+               - Graduate Unemployment: 25% (immediate labor market impact)
+               - Accountants: 20% (specific AI displacement signal)
+            
+            3. **Directional Adjustments**:
+               - Labor Share & Accountants: Negative changes → positive z-scores
+               - GDP & Unemployment: Positive changes → positive z-scores
+            
+            4. **Final Score**: Weighted average of z-scores, scaled to 0-100:
+               ```
+               Score = 50 + (weighted_z_score × 50/3)
+               ```
+            
+            **📊 Statistical Parameters:**
+            - **Labor Share σ**: ±2.5% (typical annual variation)
+            - **GDP per Capita σ**: ±3.0% (typical annual variation)
+            - **Accountants σ**: ±5.0% (employment volatility)
+            - **Graduate Unemployment σ**: ±15.0% (rate change volatility)
             
             **🎯 Score Interpretation:**
-            - 🟢 **0-49**: Low Signal - Normal economic fluctuations
-            - 🟡 **50-69**: Moderate Signal - Some displacement indicators
-            - 🔴 **70-100**: High Signal - Strong AI singularity patterns
+            - 🟢 **0-49**: Low Signal - Within normal economic variation
+            - 🟡 **50-69**: Moderate Signal - Emerging displacement patterns
+            - 🔴 **70-100**: High Signal - Strong AI singularity indicators
             
             **⚠️ Limitations:**
             - Correlation doesn't imply causation
-            - Many factors affect these metrics beyond AI
-            - Score is experimental and should be interpreted carefully
+            - Historical volatility estimates may not reflect future patterns
+            - Multiple economic factors beyond AI affect these metrics
+            - Score is experimental and should be interpreted with caution
             """)
 
 except FileNotFoundError as e:
