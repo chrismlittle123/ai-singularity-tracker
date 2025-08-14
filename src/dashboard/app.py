@@ -177,7 +177,7 @@ try:
         )
         fig_labor.update_traces(line=dict(color='#1f77b4', width=3))
         st.plotly_chart(fig_labor, use_container_width=True)
-        st.caption("📊 **Data Source**: [FRED Series PRS85006173](https://fred.stlouisfed.org/series/PRS85006173) | [Download CSV](https://fred.stlouisfed.org/graph/fredgraph.csv?id=PRS85006173)")
+        st.caption("📊 **Data Source**: [FRED Series PRS85006173](https://fred.stlouisfed.org/series/PRS85006173)")
         
         # Real GDP per Capita Chart
         st.subheader("💰 Real GDP per Capita")
@@ -196,7 +196,7 @@ try:
         )
         fig_gdp.update_traces(line=dict(color='#2ca02c', width=3))
         st.plotly_chart(fig_gdp, use_container_width=True)
-        st.caption("📊 **Data Source**: [FRED Series A939RX0Q048SBEA](https://fred.stlouisfed.org/series/A939RX0Q048SBEA) | [Download CSV](https://fred.stlouisfed.org/graph/fredgraph.csv?id=A939RX0Q048SBEA)")
+        st.caption("📊 **Data Source**: [FRED Series A939RX0Q048SBEA](https://fred.stlouisfed.org/series/A939RX0Q048SBEA)")
         
         # Accountants Employment Chart
         st.subheader("👨‍💼 Accountants Employment")
@@ -217,7 +217,7 @@ try:
         fig_acc.update_traces(line=dict(color='#ff7f0e', width=3))
         
         st.plotly_chart(fig_acc, use_container_width=True)
-        st.caption("📊 **Data Source**: [U.S. Census Bureau Current Population Survey](https://www2.census.gov/programs-surveys/cps/datasets/2025/basic/2025_Basic_CPS_Public_Use_Record_Layout_plus_IO_Code_list.txt) | Occupation Code: 0800 (Accountants and Auditors)")
+        st.caption("📊 **Data Source**: [U.S. Census Bureau Current Population Survey](https://www2.census.gov/programs-surveys/cps/datasets/2025) | Occupation Code: 0800 (Accountants and Auditors)")
         
         # Graduate Unemployment Rate Chart
         if unemployment_df is not None:
@@ -237,7 +237,7 @@ try:
             )
             fig_unemp.update_traces(line=dict(color='#d62728', width=3))
             st.plotly_chart(fig_unemp, use_container_width=True)
-            st.caption("📊 **Data Source**: [FRED Series UNRATE](https://fred.stlouisfed.org/series/UNRATE) | [Download CSV](https://fred.stlouisfed.org/graph/fredgraph.csv?id=UNRATE)")
+            st.caption("📊 **Data Source**: [FRED Series CGAD2534](https://fred.stlouisfed.org/series/CGAD2534)")
     
     with tab2:
         st.header("Year-over-Year Analysis & AI Singularity Score")
