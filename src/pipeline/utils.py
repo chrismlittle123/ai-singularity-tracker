@@ -102,6 +102,9 @@ def fetch_fred_data(url: str, data_name: str, column_name: str, quarters: int = 
     df.columns = ["date", column_name]
     df["date"] = pd.to_datetime(df["date"])
 
+    # Drop rows with missing dates or values
+    df = df.dropna(subset=["date", column_name])
+
     # Filter for last N quarters
     df_recent = df.tail(quarters).copy()
 
