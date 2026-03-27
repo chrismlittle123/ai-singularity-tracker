@@ -116,7 +116,8 @@ def fetch_fred_data(url: str, data_name: str, column_name: str, quarters: int = 
 
     print(f"\nLast {quarters} quarters:")
     for _, row in df_recent.iterrows():
-        print(f"  • {row['date'].strftime('%Y Q%q')}: {row[column_name]:.2f}")
+        quarter = (row['date'].month - 1) // 3 + 1
+        print(f"  • {row['date'].strftime('%Y')} Q{quarter}: {row[column_name]:.2f}")
 
     # Save only the last N quarters to raw directory
     df_recent.to_csv(output_path, index=False)

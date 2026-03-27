@@ -18,12 +18,19 @@ def build_fred_url(series_id, frequency="Monthly"):
 
 
 def fetch_graduate_unemployment_rate_data():
-    """Fetch graduate unemployment rate data from FRED and save to data directory."""
-    url = build_fred_url("CGAD2534", frequency="Monthly")
+    """Fetch college graduate unemployment rate from FRED.
+
+    Uses LNU04027662 (Bachelor's Degree and Higher, 25+) instead of CGAD2534
+    (Advanced Degree, 25-34) for much larger sample size and lower noise.
+    """
+    url = build_fred_url("LNU04027662", frequency="Monthly")
 
     # Fetch data using utility (42 months for 3.5 years of monthly data)
     df_recent = fetch_fred_data(
-        url=url, data_name="graduate_unemployment_rate", column_name="graduate_unemployment_rate", quarters=42
+        url=url,
+        data_name="graduate_unemployment_rate",
+        column_name="graduate_unemployment_rate",
+        quarters=42,
     )
 
     # Analyze trends

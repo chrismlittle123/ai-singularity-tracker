@@ -4,13 +4,18 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-The AI Singularity Tracker monitors economic indicators to detect potential signals of AI-driven technological displacement. It tracks three key metrics:
+The AI Singularity Tracker monitors economic indicators to detect potential signals of AI-driven technological displacement. It tracks five key metrics across two categories:
 
+**Effect Indicators (economic displacement signals):**
 - **Labor Share of Income** (quarterly FRED data)
-- **Real GDP per Capita** (quarterly FRED data)  
-- **Accountants Employment** (monthly Census CPS data)
+- **Real GDP per Capita** (quarterly FRED data)
+- **Graduate Unemployment Rate** (monthly FRED data)
 
-The hypothesis: downward trends in labor share + accountants employment combined with upward real GDP trends over 1-3 year periods may signal AI-driven economic transformation.
+**Cause Indicators (AI compute buildout):**
+- **Electricity Production Index** (monthly FRED data) — proxy for data center power demand
+- **NVIDIA Quarterly Revenue** (SEC EDGAR XBRL) — proxy for AI compute investment
+
+The hypothesis: declining labor share + rising graduate unemployment combined with rising GDP, electricity demand, and NVIDIA revenue over 1-3 year periods may signal AI-driven economic transformation.
 
 ## Architecture
 
@@ -23,8 +28,8 @@ The hypothesis: downward trends in labor share + accountants employment combined
 **Smart data management:**
 - Automatic detection of missing time periods
 - Incremental fetching (only downloads missing data)
-- FRED data: maintains last 14 quarters 
-- CPS data: maintains last 36 months
+- FRED data: maintains last 14 quarters (quarterly) or 42 months (monthly)
+- NVIDIA data: fetches from SEC EDGAR XBRL API (last 14 quarters)
 
 ### Directory Organization
 
@@ -38,7 +43,7 @@ src/
 │   └── app.py     # Interactive dashboard with AI Singularity Score
 └── pipeline/
     ├── utils.py       # Shared utilities (fetch_fred_data, trend analysis)
-    ├── ingestion/     # Data download scripts  
+    ├── ingestion/     # Data download scripts
     └── processing/    # Data transformation scripts
 ```
 
@@ -60,13 +65,17 @@ uv run ruff format         # Format code
 ```bash
 # Ingestion (downloads missing data automatically)
 uv run python src/pipeline/ingestion/fetch_labor_share.py
-uv run python src/pipeline/ingestion/fetch_real_gdp_per_capita.py  
-uv run python src/pipeline/ingestion/fetch_accountants_employed.py
+uv run python src/pipeline/ingestion/fetch_real_gdp_per_capita.py
+uv run python src/pipeline/ingestion/fetch_unemployment_rate.py
+uv run python src/pipeline/ingestion/fetch_electricity_production.py
+uv run python src/pipeline/ingestion/fetch_nvidia_revenue.py
 
 # Processing (transforms to standardized format)
 uv run python src/pipeline/processing/process_labor_share.py
 uv run python src/pipeline/processing/process_real_gdp_per_capita.py
-uv run python src/pipeline/processing/process_accountants_employed.py
+uv run python src/pipeline/processing/process_unemployment_rate.py
+uv run python src/pipeline/processing/process_electricity_production.py
+uv run python src/pipeline/processing/process_nvidia_revenue.py
 
 # Dashboard
 uv run streamlit run src/dashboard/app.py
@@ -74,35 +83,33 @@ uv run streamlit run src/dashboard/app.py
 
 ## Data Sources & Formats
 
-### FRED Data (Labor Share, Real GDP)
+### FRED Data (Labor Share, Real GDP, Graduate Unemployment, Electricity)
 - **Source**: Federal Reserve Economic Data CSV exports
-- **Frequency**: Quarterly
+- **Series**: PRS85006173 (labor share), A939RX0Q048SBEA (GDP), CGAD2534 (unemployment), IPG2211A2N (electricity)
+- **Frequency**: Quarterly (labor share, GDP) or Monthly (unemployment, electricity)
 - **Processing**: Uses `fetch_fred_data()` utility with automatic trend analysis
 - **Output**: `year,month,<metric_name>` format
 
-### CPS Data (Accountants Employment) 
-- **Source**: Census Bureau Current Population Survey monthly files
-- **URL Pattern**: `https://www2.census.gov/programs-surveys/cps/datasets/{year}/basic/{month}{year}pub.csv`
-- **Filter**: Occupation code 800 (Accountants and Auditors)
-- **Employment Status**: PEMLR field (1.0 = employed)
-- **Output**: `year,month,employed_accountants,unemployed_accountants,total_accountants,employment_rate`
+### SEC EDGAR Data (NVIDIA Revenue)
+- **Source**: SEC EDGAR XBRL API (CIK 0001045810)
+- **Frequency**: Quarterly (fiscal quarter filings)
+- **Note**: Uses total revenue as proxy (~90% is Data Center segment)
+- **Output**: `year,month,revenue_millions` format
 
 ## Key Implementation Details
 
 ### Time Period Management
 - **Current month excluded** from all data fetching
 - **FRED scripts**: Automatically calculate past 14 quarters from current date
-- **CPS script**: Automatically calculate past 36 months from current date
 - **Missing data detection**: Scans existing files to avoid redundant downloads
 
 ### Error Handling
 - Network timeouts and retries built into fetch functions
 - Graceful handling of missing data fields
-- SSL verification disabled for government sites (Census Bureau)
 
 ### Data Processing Patterns
 1. Load raw CSV files from respective directories
-2. Transform date columns into separate year/month columns  
+2. Transform date columns into separate year/month columns
 3. Calculate derived metrics (rates, summaries)
 4. Save to processed directories with consistent naming
 
@@ -115,6 +122,6 @@ uv run streamlit run src/dashboard/app.py
 
 ## File Naming Conventions
 
-- **Raw FRED data**: `{data_name}_last_14_quarters.csv`
-- **Raw CPS data**: `accountants_{month_abbr}{year_short}.csv` (e.g., `accountants_jul25.csv`)
-- **Processed data**: `{data_name}_processed.csv` or `{data_name}_summary.csv`
+- **Raw FRED data**: `{data_name}_last_{N}_quarters.csv`
+- **Raw NVIDIA data**: `nvidia_quarterly_revenue.csv`
+- **Processed data**: `{data_name}_processed.csv`
