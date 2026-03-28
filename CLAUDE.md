@@ -69,6 +69,7 @@ uv run python src/pipeline/ingestion/fetch_real_gdp_per_capita.py
 uv run python src/pipeline/ingestion/fetch_unemployment_rate.py
 uv run python src/pipeline/ingestion/fetch_electricity_production.py
 uv run python src/pipeline/ingestion/fetch_nvidia_revenue.py
+uv run python src/pipeline/ingestion/fetch_business_applications.py
 
 # Processing (transforms to standardized format)
 uv run python src/pipeline/processing/process_labor_share.py
@@ -76,6 +77,7 @@ uv run python src/pipeline/processing/process_real_gdp_per_capita.py
 uv run python src/pipeline/processing/process_unemployment_rate.py
 uv run python src/pipeline/processing/process_electricity_production.py
 uv run python src/pipeline/processing/process_nvidia_revenue.py
+uv run python src/pipeline/processing/process_business_applications.py
 
 # Dashboard
 uv run streamlit run src/dashboard/app.py

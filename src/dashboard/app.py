@@ -14,19 +14,23 @@ st.set_page_config(
 )
 
 st.title("🤖 AI Singularity Tracker")
-st.markdown("**Monitoring economic indicators for signs of AI-driven technological displacement**")
+st.markdown(
+    "**Monitoring whether AI investment is producing "
+    "broad-based gains or concentrated displacement**"
+)
 
 # --- Takeoff criteria ---
 # Each defines a 3-year threshold that would be historically abnormal.
 # Organized into three categories: Smoking Guns, Displacement Effects, Investment Causes.
 TAKEOFF_THRESHOLDS = {
-    # SMOKING GUNS — hardest to explain without AI
+    # STRUCTURAL SHIFTS — hardest to explain without AI
     "tfp": {
         "label": "TFP Acceleration",
         "threshold": 6.0,
+        "early_threshold": 2.0,
         "unit": "%",
         "direction": "rise",
-        "weight": 0.18,
+        "weight": 0.19,
         "frequency": "annual",
         "rationale": (
             "TFP grows ~1%/yr historically. 2%/yr sustained (6% over 3 years) "
@@ -36,9 +40,10 @@ TAKEOFF_THRESHOLDS = {
     "occupation_gap": {
         "label": "AI Job Displacement Gap",
         "threshold": 15.0,
+        "early_threshold": 5.0,
         "unit": "pp",
         "direction": "rise",
-        "weight": 0.17,
+        "weight": 0.18,
         "frequency": "quarterly",
         "rationale": (
             "If AI-targetable occupations (office, legal, sales, tech) decline "
@@ -49,9 +54,10 @@ TAKEOFF_THRESHOLDS = {
     "capital_labor": {
         "label": "Capital-Labor Substitution",
         "threshold": 12.0,
+        "early_threshold": 4.0,
         "unit": "%",
         "direction": "rise",
-        "weight": 0.13,
+        "weight": 0.14,
         "frequency": "annual",
         "rationale": (
             "The capital-to-labor ratio rises ~1-2%/yr normally. "
@@ -59,13 +65,14 @@ TAKEOFF_THRESHOLDS = {
             "replacing workers with capital (AI/software)."
         ),
     },
-    # DISPLACEMENT EFFECTS
+    # DISTRIBUTION INDICATORS
     "labor_share": {
         "label": "Labor Share Decline",
         "threshold": 5.0,
+        "early_threshold": 1.7,
         "unit": "pp",
         "direction": "decline",
-        "weight": 0.10,
+        "weight": 0.11,
         "frequency": "quarterly",
         "rationale": (
             "Labor share declined ~5pp over 15 years (2000-2015). "
@@ -75,9 +82,10 @@ TAKEOFF_THRESHOLDS = {
     "gdp_per_capita": {
         "label": "GDP/Capita Growth",
         "threshold": 12.0,
+        "early_threshold": 4.0,
         "unit": "%",
         "direction": "rise",
-        "weight": 0.08,
+        "weight": 0.09,
         "frequency": "quarterly",
         "rationale": (
             "US real GDP/capita grows ~2%/yr historically. "
@@ -87,33 +95,37 @@ TAKEOFF_THRESHOLDS = {
     "unemployment": {
         "label": "College Unemployment Rise",
         "threshold": 2.0,
+        "early_threshold": 0.7,
         "unit": "pp",
         "direction": "rise",
-        "weight": 0.08,
+        "weight": 0.09,
         "frequency": "quarterly",
         "rationale": (
             "College-educated unemployment is typically 2-3%. "
             "A 2pp rise (to 4-5%) would be structurally abnormal."
         ),
     },
-    # INVESTMENT CAUSES
+    # AI INVESTMENT SCALE
     "nvidia": {
         "label": "NVIDIA Quarterly Revenue",
         "threshold": 200000.0,  # $200B/quarter ($800B/yr)
+        "early_threshold": 67000.0,  # ~$67B/quarter
         "unit": "$M",
         "direction": "rise",
-        "weight": 0.12,
+        "weight": 0.13,
         "frequency": "quarterly",
         "metric_type": "level",  # Absolute level, not growth rate
         "rationale": (
             "$200B/quarter = ~$800B/yr from one AI chip company. "
-            "At that scale, AI compute spending is ~3-4% of US GDP — "
-            "infrastructure at economy-transforming levels."
+            "At that scale, AI compute spending is ~3-4% of US GDP. "
+            "Note: revenue measures compute spending, not deployment type — "
+            "the same hardware could power automation or augmentation."
         ),
     },
     "electricity": {
         "label": "Electricity Consumption Growth",
         "threshold": 15.0,
+        "early_threshold": 5.0,
         "unit": "%",
         "direction": "rise",
         "weight": 0.07,
@@ -127,9 +139,15 @@ TAKEOFF_THRESHOLDS = {
 
 CONSISTENCY_TARGET = 0.75
 METRIC_CATEGORIES = {
-    "Smoking Guns": ["tfp", "occupation_gap", "capital_labor"],
-    "Displacement Effects": ["labor_share", "gdp_per_capita", "unemployment"],
-    "Investment Causes": ["nvidia", "electricity"],
+    "Structural Shifts": ["tfp", "occupation_gap", "capital_labor"],
+    "Distribution Indicators": ["labor_share", "gdp_per_capita", "unemployment"],
+    "AI Investment Scale": ["nvidia", "electricity"],
+}
+
+CATEGORY_ICONS = {
+    "Structural Shifts": "🔬",
+    "Distribution Indicators": "📉",
+    "AI Investment Scale": "💰",
 }
 
 
@@ -164,6 +182,7 @@ def load_data():
     tfp = load_optional(d, "tfp", "tfp_processed.csv")
     cap_lab = load_optional(d, "capital_labor", "capital_labor_processed.csv")
     occ = load_optional(d, "occupation_employment", "occupation_employment_processed.csv")
+    biz_apps = load_optional(d, "business_applications", "business_applications_processed.csv")
 
     return {
         "labor_share": labor,
@@ -174,6 +193,7 @@ def load_data():
         "tfp": tfp,
         "capital_labor": cap_lab,
         "occupation": occ,
+        "business_applications": biz_apps,
     }
 
 
@@ -301,6 +321,42 @@ def compute_takeoff_score(metrics):
     return min(100.0, base * coherence * 100)
 
 
+def compute_compensation_health(labor_share_df, gdp_df):
+    """Derive compensation health from existing labor share and GDP data.
+
+    Positive = gains shared broadly (reinstatement working).
+    Negative = gains concentrating in capital (compensation failing).
+    Based on Acemoglu-Restrepo (2019) reinstatement framework.
+    """
+    ls = labor_share_df.sort_values("date").reset_index(drop=True)
+    gd = gdp_df.sort_values("date").reset_index(drop=True)
+
+    merged = pd.merge(
+        ls[["date", "labor_share_index"]],
+        gd[["date", "real_gdp_per_capita"]],
+        on="date",
+    )
+
+    # YoY changes (4-quarter lag for quarterly data)
+    merged["gdp_growth"] = merged["real_gdp_per_capita"].pct_change(4) * 100
+    merged["ls_change"] = merged["labor_share_index"].diff(4)
+    merged["compensation_health"] = merged["gdp_growth"] + merged["ls_change"]
+
+    return merged.dropna(subset=["compensation_health"])
+
+
+def compute_diffusion_index(metrics, threshold_level="early"):
+    """Count how many metrics simultaneously show signals.
+
+    threshold_level: "early" (progress >= early/full ratio) or "full" (progress >= 1.0)
+    Returns (count, total, fraction).
+    """
+    cutoff = 0.33 if threshold_level == "early" else 1.0
+    active = sum(1 for m in metrics.values() if m["progress"] >= cutoff)
+    total = len(TAKEOFF_THRESHOLDS)
+    return active, total, active / total if total > 0 else 0
+
+
 def make_chart(df, x, y, title, labels, color, chart_type="line"):
     """Create a styled plotly chart."""
     if chart_type == "bar":
@@ -325,7 +381,7 @@ try:
     tab1, tab2, tab3, tab4 = st.tabs(
         [
             "📈 Time Series Charts",
-            "🎯 Takeoff Analysis",
+            "🎯 Transformation Analysis",
             "🔮 Scenario Projections",
             "📚 Methodology",
         ]
@@ -335,7 +391,7 @@ try:
         st.header("Economic Indicators Over Time")
 
         # Organize charts by category
-        st.subheader("🔬 Smoking Gun Indicators")
+        st.subheader("🔬 Structural Shift Indicators")
 
         if data["tfp"] is not None:
             st.plotly_chart(
@@ -482,7 +538,7 @@ try:
                 "Red shading = gap widening (displacement signal)"
             )
 
-        st.subheader("📉 Displacement Effects")
+        st.subheader("📉 Distribution Indicators")
 
         st.plotly_chart(
             make_chart(
@@ -524,7 +580,7 @@ try:
             )
             st.caption("📊 [FRED LNU04027662](https://fred.stlouisfed.org/series/LNU04027662)")
 
-        st.subheader("💰 Investment Causes")
+        st.subheader("💰 AI Investment Scale")
 
         if data["nvidia"] is not None:
             st.plotly_chart(
@@ -541,6 +597,14 @@ try:
             )
             st.caption(
                 "📊 [SEC EDGAR XBRL](https://data.sec.gov/api/xbrl/companyfacts/CIK0001045810.json)"
+            )
+            st.info(
+                "**Deployment-blind metric:** NVIDIA revenue measures AI compute "
+                "investment, not whether that compute is deployed for worker "
+                "augmentation or replacement. The same spending could produce "
+                "mass displacement or broad-based productivity gains depending "
+                "on institutional choices. Interpret alongside distribution "
+                "indicators. (Acemoglu & Johnson, 2023)"
             )
 
         if data["electricity"] is not None:
@@ -561,11 +625,77 @@ try:
                 " — Total Retail Electricity Sales"
             )
 
+        # --- Reinstatement & Compensation Indicators ---
+        st.subheader("🔄 Reinstatement Indicators")
+        st.markdown(
+            "*These contextual indicators track whether compensation mechanisms "
+            "are working — whether AI-driven gains create new tasks and flow "
+            "to workers, or concentrate in capital returns. "
+            "(Acemoglu & Restrepo, 2019)*"
+        )
+
+        # Compensation Health Index (derived from existing data)
+        comp_health = compute_compensation_health(data["labor_share"], data["gdp_per_capita"])
+        if len(comp_health) > 0:
+            colors = [
+                "#2ca02c" if v >= 0 else "#d62728" for v in comp_health["compensation_health"]
+            ]
+            fig_comp = go.Figure()
+            fig_comp.add_trace(
+                go.Bar(
+                    x=comp_health["date"],
+                    y=comp_health["compensation_health"],
+                    marker_color=colors,
+                    name="Compensation Health",
+                )
+            )
+            fig_comp.add_hline(y=0, line_color="#999", line_width=2)
+            fig_comp.update_layout(
+                title="Compensation Health Index (GDP Growth + Labor Share Change)",
+                plot_bgcolor="white",
+                paper_bgcolor="white",
+                font=dict(size=12),
+                yaxis_title="Index",
+                xaxis_title="Date",
+                showlegend=False,
+            )
+            st.plotly_chart(fig_comp, use_container_width=True)
+            st.caption(
+                "**Green** = economic gains shared with workers. "
+                "**Red** = GDP growth concentrating in capital returns "
+                "while labor share declines — a sign that reinstatement "
+                "(new task creation) is failing to offset automation. "
+                "Based on Acemoglu & Restrepo (2019) task framework."
+            )
+
+        # Business Applications chart
+        if data["business_applications"] is not None:
+            st.plotly_chart(
+                make_chart(
+                    data["business_applications"],
+                    "date",
+                    "business_applications",
+                    "New Business Applications (Employer ID Numbers)",
+                    {"date": "Date", "business_applications": "Applications"},
+                    "#ff7f0e",
+                ),
+                use_container_width=True,
+            )
+            st.caption(
+                "📊 [FRED BABATOTALSAUS]"
+                "(https://fred.stlouisfed.org/series/BABATOTALSAUS)"
+                " — Monthly, Census Bureau. High new business formation "
+                "indicates reinstatement is working (new tasks/industries "
+                "emerging). Sustained decline alongside displacement signals "
+                "suggests automation without offsetting job creation."
+            )
+
     with tab2:
-        st.header("🎯 AI Takeoff Analysis")
+        st.header("🎯 AI Transformation Analysis")
         st.markdown(
             "How close are current indicators to **specific, historically "
-            "abnormal** thresholds that would signal AI takeoff?"
+            "abnormal** thresholds that would signal structural economic "
+            "transformation driven by AI?"
         )
 
         # Prepare aligned datasets for scoring
@@ -587,23 +717,46 @@ try:
         takeoff_metrics = compute_takeoff_metrics(scoring_data)
         takeoff_score = compute_takeoff_score(takeoff_metrics)
 
-        # Score display
+        # Score display with diffusion index
         if takeoff_score >= 60:
-            sc, sl = "🔴", "Strong Takeoff Signal"
+            sc, sl = "🔴", "Rapid Transformation"
         elif takeoff_score >= 30:
-            sc, sl = "🟡", "Early Indicators"
+            sc, sl = "🟡", "Emerging Signal"
         else:
-            sc, sl = "🟢", "No Takeoff Signal"
+            sc, sl = "🟢", "No Signal"
 
-        st.metric(
-            label=f"{sc} AI Takeoff Score",
-            value=f"{takeoff_score:.1f} / 100",
-            help=sl,
+        col_score, col_early_d, col_full_d = st.columns(3)
+        with col_score:
+            st.metric(
+                label=f"{sc} AI Transformation Index",
+                value=f"{takeoff_score:.1f} / 100",
+                help=sl,
+            )
+        with col_early_d:
+            early_n, early_t, _ = compute_diffusion_index(takeoff_metrics, "early")
+            st.metric(
+                "Early Warning Breadth",
+                f"{early_n} / {early_t} metrics",
+                help="Metrics above early-warning threshold (~1/3 of full)",
+            )
+        with col_full_d:
+            full_n, full_t, _ = compute_diffusion_index(takeoff_metrics, "full")
+            st.metric(
+                "Full Threshold Breadth",
+                f"{full_n} / {full_t} metrics",
+                help="Metrics at or above full transformation threshold",
+            )
+        st.caption(
+            "**Diffusion breadth matters:** 2 metrics at threshold could be "
+            "coincidence; 6+ simultaneous signals across independent indicators "
+            "would be structurally significant. National averages can mask "
+            "concentrated harm — broad diffusion increases confidence that "
+            "effects are economy-wide."
         )
         st.divider()
 
         # --- Radar chart: overall shape of takeoff signal ---
-        st.subheader("🕸 Takeoff Radar")
+        st.subheader("🕸 Transformation Radar")
         radar_labels = []
         radar_progress = []
         radar_consistency = []
@@ -671,7 +824,7 @@ try:
         st.divider()
 
         # --- Horizontal bar chart: all metrics progress at a glance ---
-        st.subheader("📊 Progress Toward Takeoff Thresholds")
+        st.subheader("📊 Progress Toward Transformation Thresholds")
 
         bar_data = []
         for cat_name, cat_keys in METRIC_CATEGORIES.items():
@@ -692,9 +845,9 @@ try:
         if bar_data:
             bar_df = pd.DataFrame(bar_data)
             cat_colors = {
-                "Smoking Guns": "#636EFA",
-                "Displacement Effects": "#EF553B",
-                "Investment Causes": "#00CC96",
+                "Structural Shifts": "#636EFA",
+                "Distribution Indicators": "#EF553B",
+                "AI Investment Scale": "#00CC96",
             }
             fig_bars = px.bar(
                 bar_df,
@@ -706,12 +859,20 @@ try:
                 text="Progress (%)",
             )
             fig_bars.update_traces(texttemplate="%{text:.0f}%", textposition="outside")
-            # Threshold line at 100%
+            # Early warning line at ~33%
+            fig_bars.add_vline(
+                x=33,
+                line_dash="dot",
+                line_color="#ff7f0e",
+                annotation_text="Early Warning",
+                annotation_position="top left",
+            )
+            # Full threshold line at 100%
             fig_bars.add_vline(
                 x=100,
                 line_dash="dash",
                 line_color="red",
-                annotation_text="Takeoff Threshold",
+                annotation_text="Full Threshold",
                 annotation_position="top right",
             )
             fig_bars.update_layout(
@@ -737,10 +898,8 @@ try:
         st.subheader("🔍 Metric-by-Metric Detail")
 
         for cat_name, cat_keys in METRIC_CATEGORIES.items():
-            st.markdown(
-                f"**{'🔬' if 'Smoking' in cat_name else '📉' if 'Displace' in cat_name else '💰'}"
-                f" {cat_name}**"
-            )
+            icon = CATEGORY_ICONS.get(cat_name, "")
+            st.markdown(f"**{icon} {cat_name}**")
 
             for key in cat_keys:
                 info = TAKEOFF_THRESHOLDS[key]
@@ -784,6 +943,9 @@ try:
                     col_gauge, col_stats = st.columns([3, 2])
 
                     with col_gauge:
+                        # Early warning percentage for this metric
+                        early_pct = info["early_threshold"] / info["threshold"] * 100
+
                         # Bullet gauge for this metric
                         fig_gauge = go.Figure(
                             go.Indicator(
@@ -797,13 +959,13 @@ try:
                                             "#d62728"
                                             if prog_pct >= 100
                                             else "#ff7f0e"
-                                            if prog_pct >= 50
+                                            if prog_pct >= early_pct
                                             else "#2ca02c"
                                         )
                                     ),
                                     steps=[
-                                        {"range": [0, 50], "color": "#f0f0f0"},
-                                        {"range": [50, 100], "color": "#e8e8e8"},
+                                        {"range": [0, early_pct], "color": "#f0f0f0"},
+                                        {"range": [early_pct, 100], "color": "#fff3e0"},
                                         {"range": [100, 150], "color": "#ffe0e0"},
                                     ],
                                     threshold=dict(
@@ -838,6 +1000,9 @@ try:
         # Summary
         st.subheader("🔍 Current Assessment")
         at_thresh = [k for k, v in takeoff_metrics.items() if v["progress"] >= 1.0]
+        early_warn = [
+            k for k, v in takeoff_metrics.items() if v["progress"] >= 0.33 and v["progress"] < 1.0
+        ]
         consistent = [
             k for k, v in takeoff_metrics.items() if v["consistency"] >= CONSISTENCY_TARGET
         ]
@@ -848,16 +1013,29 @@ try:
             return ", ".join(TAKEOFF_THRESHOLDS[k]["label"] for k in keys) or "None"
 
         st.markdown(f"""
-        **At/above threshold:** {label_list(at_thresh)}
+        **At/above full threshold:** {label_list(at_thresh)}
+
+        **Early warning (above 1/3 threshold):** {label_list(early_warn)}
 
         **Consistent trend (>75%):** {label_list(consistent)}
 
-        **Early signal:** {label_list(active)}
+        **Active signal (score > 0.3):** {label_list(active)}
 
-        **Takeoff requires:** All {total} metrics at threshold with >75%
-        consistency. Currently **{len(at_thresh)}/{total}** at threshold,
+        **Structural transformation requires:** Multiple metrics at threshold
+        with >75% consistency. Currently **{len(at_thresh)}/{total}** at
+        full threshold, **{len(early_warn)}/{total}** at early warning,
         **{len(consistent)}/{total}** consistent.
         """)
+
+        st.info(
+            "**Reinstatement context:** This scoring system measures the "
+            "speed of potential displacement but not the reinstatement effect "
+            "(new task creation). Check the Reinstatement Indicators in the "
+            "Time Series tab — Business Applications and Compensation Health — "
+            "to assess whether the economy is creating offsetting new tasks. "
+            "Displacement without reinstatement is the critical signal. "
+            "(Acemoglu & Restrepo, 2019)"
+        )
 
     with tab3:
         st.header("🔮 Scenario-Based Takeoff Projections")
@@ -994,7 +1172,7 @@ try:
         metric_df = pd.DataFrame(metric_rows)
 
         # --- Score trajectory chart ---
-        st.subheader("📈 Projected Takeoff Score Over Time")
+        st.subheader("📈 Projected Transformation Score Over Time")
 
         fig_scores = go.Figure()
         for sname, sinfo in SCENARIOS.items():
@@ -1031,7 +1209,7 @@ try:
             y1=100,
             fillcolor="rgba(214,39,40,0.08)",
             line_width=0,
-            annotation_text="Strong Takeoff Signal",
+            annotation_text="Rapid Transformation",
             annotation_position="top left",
         )
         fig_scores.add_hrect(
@@ -1039,13 +1217,13 @@ try:
             y1=60,
             fillcolor="rgba(255,127,14,0.08)",
             line_width=0,
-            annotation_text="Early Indicators",
+            annotation_text="Emerging Signal",
             annotation_position="top left",
         )
 
         fig_scores.update_layout(
             xaxis=dict(title="Year", dtick=2, range=[2025, 2041]),
-            yaxis=dict(title="Takeoff Score", range=[0, 100]),
+            yaxis=dict(title="Transformation Score", range=[0, 100]),
             plot_bgcolor="white",
             paper_bgcolor="white",
             height=450,
@@ -1138,36 +1316,48 @@ try:
     with tab4:
         st.header("📚 Methodology")
 
-        st.subheader("What is 'AI Takeoff'?")
+        st.subheader("What Does This Tracker Measure?")
         st.markdown("""
-        AI takeoff = the point where AI automation causes **measurable,
-        sustained, historically abnormal** shifts across multiple
-        independent economic indicators simultaneously.
+        This tracker monitors whether AI investment is producing
+        **measurable, sustained, historically abnormal** shifts across
+        multiple independent economic indicators simultaneously.
 
-        The tracker defines **8 specific thresholds** across three
-        categories. Each threshold is a rate of change that would be
-        extraordinary by historical standards.
+        It does **not** predict a "singularity" or claim that AI will
+        inevitably cause mass displacement. Instead, it asks: **are
+        current economic data consistent with AI-driven structural
+        transformation?** The answer can be "no" — and that is a
+        valid, informative result.
+
+        The tracker defines **8 metrics** across three categories,
+        each with two threshold tiers:
+        - **Early warning** (~1/3 of full threshold): calibrated to
+          near-term AI productivity estimates (Acemoglu, 2024)
+        - **Full threshold**: historically extraordinary rates that
+          would indicate structural transformation
         """)
 
-        st.subheader("Takeoff Thresholds (3-year rolling window)")
+        st.subheader("Thresholds (3-year rolling window)")
         for cat_name, cat_keys in METRIC_CATEGORIES.items():
-            st.markdown(f"**{cat_name}:**")
+            icon = CATEGORY_ICONS.get(cat_name, "")
+            st.markdown(f"**{icon} {cat_name}:**")
             for key in cat_keys:
                 info = TAKEOFF_THRESHOLDS[key]
                 arrow = "↓" if info["direction"] == "decline" else "↑"
                 st.markdown(
                     f"- {info['label']} {arrow} "
-                    f"**{info['threshold']}{info['unit']}** "
+                    f"Early: **{info['early_threshold']}{info['unit']}** / "
+                    f"Full: **{info['threshold']}{info['unit']}** "
                     f"({info['frequency']}, weight: {info['weight']:.0%})"
                 )
                 st.caption(info["rationale"])
 
         st.subheader("Scoring")
         st.markdown("""
-        1. **Progress** = actual 3yr change / threshold (0-100%+)
+        1. **Progress** = actual 3yr change / full threshold (0-100%+)
         2. **Consistency** = fraction of periods trending correctly
         3. **Metric Score** = Progress x Consistency (capped at 1.0)
         4. **Overall** = weighted average x coherence factor
+        5. **Diffusion** = count of metrics above early/full thresholds
 
         Coherence factor penalizes when few metrics are active.
         Annual metrics (TFP, Capital-Labor) use 3-period lookback;
@@ -1175,6 +1365,43 @@ try:
 
         **Unemployment uses absolute pp change** (not % of rate)
         to avoid base-rate bias.
+
+        **Early warning thresholds** (~1/3 of full) are calibrated
+        to Acemoglu (2024) estimates of near-term AI productivity
+        effects (0.66% TFP over 10 years). These detect slow erosion
+        that the full thresholds would miss.
+        """)
+
+        st.subheader("Causal Limitations")
+        st.markdown("""
+        This tracker monitors patterns **consistent with** AI-driven
+        structural change. It cannot prove causality. Key limitations:
+
+        - **Compute ≠ displacement.** AI investment (NVIDIA revenue,
+          electricity) measures scale of spending, not deployment type.
+          The same investment could produce worker augmentation or
+          replacement depending on corporate strategy, regulation, and
+          labor market institutions (Acemoglu & Johnson, 2023).
+
+        - **Multiple confounds.** All tracked indicators are affected by
+          monetary policy, globalization, demographics, and pandemic
+          recovery. The tracker's strength is requiring multiple
+          independent indicators to move simultaneously — unlikely
+          to occur from confounders alone.
+
+        - **Reinstatement is not scored.** The composite index measures
+          displacement speed but not new task creation. Business
+          Applications and Compensation Health provide interpretive
+          context but are not incorporated into the score. This is a
+          deliberate design choice: displacement and reinstatement
+          operate on different timescales and should not be netted.
+
+        - **Aggregates mask distribution.** National-level metrics can
+          hide concentrated harm in specific occupations, demographics,
+          or regions. The diffusion index partially addresses this by
+          requiring breadth across indicators.
+
+        *Reference: Acemoglu, D. & Johnson, S. (2023). Power and Progress.*
         """)
 
         st.subheader("Data Sources")
