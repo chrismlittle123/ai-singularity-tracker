@@ -70,6 +70,8 @@ uv run python src/pipeline/ingestion/fetch_unemployment_rate.py
 uv run python src/pipeline/ingestion/fetch_electricity_production.py
 uv run python src/pipeline/ingestion/fetch_nvidia_revenue.py
 uv run python src/pipeline/ingestion/fetch_business_applications.py
+uv run python src/pipeline/ingestion/fetch_prime_age_epop.py
+uv run python src/pipeline/ingestion/fetch_quits_rate.py
 
 # Processing (transforms to standardized format)
 uv run python src/pipeline/processing/process_labor_share.py
@@ -78,6 +80,8 @@ uv run python src/pipeline/processing/process_unemployment_rate.py
 uv run python src/pipeline/processing/process_electricity_production.py
 uv run python src/pipeline/processing/process_nvidia_revenue.py
 uv run python src/pipeline/processing/process_business_applications.py
+uv run python src/pipeline/processing/process_prime_age_epop.py
+uv run python src/pipeline/processing/process_quits_rate.py
 
 # Dashboard
 uv run streamlit run src/dashboard/app.py

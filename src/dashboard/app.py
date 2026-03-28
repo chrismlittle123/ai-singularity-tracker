@@ -30,7 +30,7 @@ TAKEOFF_THRESHOLDS = {
         "early_threshold": 2.0,
         "unit": "%",
         "direction": "rise",
-        "weight": 0.19,
+        "weight": 0.16,
         "frequency": "annual",
         "rationale": (
             "TFP grows ~1%/yr historically. 2%/yr sustained (6% over 3 years) "
@@ -43,7 +43,7 @@ TAKEOFF_THRESHOLDS = {
         "early_threshold": 5.0,
         "unit": "pp",
         "direction": "rise",
-        "weight": 0.18,
+        "weight": 0.15,
         "frequency": "quarterly",
         "rationale": (
             "If AI-targetable occupations (office, legal, sales, tech) decline "
@@ -57,7 +57,7 @@ TAKEOFF_THRESHOLDS = {
         "early_threshold": 4.0,
         "unit": "%",
         "direction": "rise",
-        "weight": 0.14,
+        "weight": 0.12,
         "frequency": "annual",
         "rationale": (
             "The capital-to-labor ratio rises ~1-2%/yr normally. "
@@ -72,7 +72,7 @@ TAKEOFF_THRESHOLDS = {
         "early_threshold": 1.7,
         "unit": "pp",
         "direction": "decline",
-        "weight": 0.11,
+        "weight": 0.09,
         "frequency": "quarterly",
         "rationale": (
             "Labor share declined ~5pp over 15 years (2000-2015). "
@@ -85,7 +85,7 @@ TAKEOFF_THRESHOLDS = {
         "early_threshold": 4.0,
         "unit": "%",
         "direction": "rise",
-        "weight": 0.09,
+        "weight": 0.07,
         "frequency": "quarterly",
         "rationale": (
             "US real GDP/capita grows ~2%/yr historically. "
@@ -98,11 +98,43 @@ TAKEOFF_THRESHOLDS = {
         "early_threshold": 0.7,
         "unit": "pp",
         "direction": "rise",
-        "weight": 0.09,
+        "weight": 0.07,
         "frequency": "quarterly",
         "rationale": (
             "College-educated unemployment is typically 2-3%. "
             "A 2pp rise (to 4-5%) would be structurally abnormal."
+        ),
+    },
+    # LABOUR MARKET HEALTH — the human cost metrics
+    "prime_age_epop": {
+        "label": "Prime-Age EPOP Decline",
+        "threshold": 3.0,
+        "early_threshold": 1.0,
+        "unit": "pp",
+        "direction": "decline",
+        "weight": 0.09,
+        "frequency": "quarterly",
+        "rationale": (
+            "Prime-age (25-54) employment-population ratio is ~80% "
+            "when healthy. A 3pp decline during GDP growth is the "
+            "signature of structural displacement — the economy "
+            "thriving while workers suffer. Cannot be gamed by "
+            "discouraged workers leaving the labour force."
+        ),
+    },
+    "quits_rate": {
+        "label": "Quits Rate Decline",
+        "threshold": 0.8,
+        "early_threshold": 0.3,
+        "unit": "pp",
+        "direction": "decline",
+        "weight": 0.07,
+        "frequency": "quarterly",
+        "rationale": (
+            "Workers quit when they're confident they can find "
+            "something better. A 0.8pp decline (from ~2.2% to ~1.4%) "
+            "in a growing economy means workers feel trapped — the "
+            "earliest sentiment indicator of labour market distress."
         ),
     },
     # AI INVESTMENT SCALE
@@ -112,7 +144,7 @@ TAKEOFF_THRESHOLDS = {
         "early_threshold": 67000.0,  # ~$67B/quarter
         "unit": "$M",
         "direction": "rise",
-        "weight": 0.13,
+        "weight": 0.11,
         "frequency": "quarterly",
         "metric_type": "level",  # Absolute level, not growth rate
         "rationale": (
@@ -141,12 +173,14 @@ CONSISTENCY_TARGET = 0.75
 METRIC_CATEGORIES = {
     "Structural Shifts": ["tfp", "occupation_gap", "capital_labor"],
     "Distribution Indicators": ["labor_share", "gdp_per_capita", "unemployment"],
+    "Labour Market Health": ["prime_age_epop", "quits_rate"],
     "AI Investment Scale": ["nvidia", "electricity"],
 }
 
 CATEGORY_ICONS = {
     "Structural Shifts": "🔬",
     "Distribution Indicators": "📉",
+    "Labour Market Health": "🏥",
     "AI Investment Scale": "💰",
 }
 
@@ -183,6 +217,8 @@ def load_data():
     cap_lab = load_optional(d, "capital_labor", "capital_labor_processed.csv")
     occ = load_optional(d, "occupation_employment", "occupation_employment_processed.csv")
     biz_apps = load_optional(d, "business_applications", "business_applications_processed.csv")
+    epop = load_optional(d, "prime_age_epop", "prime_age_epop_processed.csv")
+    quits = load_optional(d, "quits_rate", "quits_rate_processed.csv")
 
     return {
         "labor_share": labor,
@@ -194,6 +230,8 @@ def load_data():
         "capital_labor": cap_lab,
         "occupation": occ,
         "business_applications": biz_apps,
+        "prime_age_epop": epop,
+        "quits_rate": quits,
     }
 
 
@@ -253,6 +291,8 @@ def compute_takeoff_metrics(datasets):
         "unemployment": ("unemployment_q", "graduate_unemployment_rate", True),
         "nvidia": ("nvidia", "revenue_millions", False),
         "electricity": ("electricity_q", "electricity_consumption", False),
+        "prime_age_epop": ("prime_age_epop_q", "prime_age_epop", True),
+        "quits_rate": ("quits_rate_q", "quits_rate", True),
     }
 
     for key, (ds_key, col, use_abs) in metric_configs.items():
@@ -580,6 +620,48 @@ try:
             )
             st.caption("📊 [FRED LNU04027662](https://fred.stlouisfed.org/series/LNU04027662)")
 
+        st.subheader("🏥 Labour Market Health")
+
+        if data["prime_age_epop"] is not None:
+            st.plotly_chart(
+                make_chart(
+                    data["prime_age_epop"],
+                    "date",
+                    "prime_age_epop",
+                    "Prime-Age (25-54) Employment-Population Ratio",
+                    {"date": "Date", "prime_age_epop": "% Employed"},
+                    "#e377c2",
+                ),
+                use_container_width=True,
+            )
+            st.caption(
+                "📊 [FRED LNS12300060]"
+                "(https://fred.stlouisfed.org/series/LNS12300060)"
+                " — Monthly, BLS. The most honest measure of whether "
+                "working-age people are actually working. Decline during "
+                "GDP growth = structural displacement."
+            )
+
+        if data["quits_rate"] is not None:
+            st.plotly_chart(
+                make_chart(
+                    data["quits_rate"],
+                    "date",
+                    "quits_rate",
+                    "Quits Rate (Total Nonfarm, JOLTS)",
+                    {"date": "Date", "quits_rate": "Rate (%)"},
+                    "#17becf",
+                ),
+                use_container_width=True,
+            )
+            st.caption(
+                "📊 [FRED JTSQUR]"
+                "(https://fred.stlouisfed.org/series/JTSQUR)"
+                " — Monthly, BLS JOLTS. Workers quit when they can "
+                "find something better. Declining quits in a growing "
+                "economy = workers feel trapped."
+            )
+
         st.subheader("💰 AI Investment Scale")
 
         if data["nvidia"] is not None:
@@ -713,6 +795,10 @@ try:
             scoring_data["electricity_q"] = align_to_quarterly(data["electricity"])
         if data["occupation"] is not None:
             scoring_data["occupation_q"] = align_to_quarterly(data["occupation"])
+        if data["prime_age_epop"] is not None:
+            scoring_data["prime_age_epop_q"] = align_to_quarterly(data["prime_age_epop"])
+        if data["quits_rate"] is not None:
+            scoring_data["quits_rate_q"] = align_to_quarterly(data["quits_rate"])
 
         takeoff_metrics = compute_takeoff_metrics(scoring_data)
         takeoff_score = compute_takeoff_score(takeoff_metrics)
@@ -1063,6 +1149,8 @@ try:
                     "unemployment": 0.1,
                     "nvidia": 100000,  # Level: $100B/qtr plateau
                     "electricity": 1.0,
+                    "prime_age_epop": 0.2,
+                    "quits_rate": 0.05,
                 },
             },
             "Agent Revolution": {
@@ -1080,6 +1168,8 @@ try:
                     "unemployment": 0.8,
                     "nvidia": 200000,  # Level: $200B/qtr
                     "electricity": 2.5,
+                    "prime_age_epop": 0.8,
+                    "quits_rate": 0.2,
                 },
             },
             "Physical AI": {
@@ -1098,6 +1188,8 @@ try:
                     "unemployment": 1.0,
                     "nvidia": 350000,  # Level: $350B/qtr
                     "electricity": 6.0,
+                    "prime_age_epop": 1.5,
+                    "quits_rate": 0.35,
                 },
             },
         }
@@ -1416,6 +1508,8 @@ try:
         | Unemployment | FRED | LNU04027662 | Monthly→Q |
         | NVIDIA Revenue | SEC EDGAR | CIK 0001045810 | Quarterly |
         | Electricity | EIA | Table 7.06 (ESTCPUS) | Monthly→Q |
+        | Prime-Age EPOP | FRED | LNS12300060 | Monthly→Q |
+        | Quits Rate | FRED (JOLTS) | JTSQUR | Monthly→Q |
         """)
 
 except FileNotFoundError as e:
