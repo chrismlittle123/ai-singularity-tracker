@@ -30,7 +30,7 @@ TAKEOFF_THRESHOLDS = {
         "early_threshold": 2.0,
         "unit": "%",
         "direction": "rise",
-        "weight": 0.16,
+        "weight": 0.14,
         "frequency": "annual",
         "rationale": (
             "TFP grows ~1%/yr historically. 2%/yr sustained (6% over 3 years) "
@@ -43,7 +43,7 @@ TAKEOFF_THRESHOLDS = {
         "early_threshold": 5.0,
         "unit": "pp",
         "direction": "rise",
-        "weight": 0.15,
+        "weight": 0.13,
         "frequency": "quarterly",
         "rationale": (
             "If AI-targetable occupations (office, legal, sales, tech) decline "
@@ -57,7 +57,7 @@ TAKEOFF_THRESHOLDS = {
         "early_threshold": 4.0,
         "unit": "%",
         "direction": "rise",
-        "weight": 0.12,
+        "weight": 0.10,
         "frequency": "annual",
         "rationale": (
             "The capital-to-labor ratio rises ~1-2%/yr normally. "
@@ -65,44 +65,53 @@ TAKEOFF_THRESHOLDS = {
             "replacing workers with capital (AI/software)."
         ),
     },
-    # DISTRIBUTION INDICATORS
+    # WAGE & DISTRIBUTION — who benefits from AI gains
+    "median_wages": {
+        "label": "Real Median Wage Decline",
+        "threshold": 5.0,
+        "early_threshold": 1.5,
+        "unit": "%",
+        "direction": "decline",
+        "weight": 0.09,
+        "frequency": "quarterly",
+        "rationale": (
+            "Real median weekly earnings grow ~0.5-1%/yr historically. "
+            "A 5% decline over 3 years during productivity growth would be "
+            "THE displacement outcome — the economy growing while workers "
+            "get poorer. The single most important metric for whether AI "
+            "is helping or hurting people."
+        ),
+    },
+    "info_jobs_per_grad": {
+        "label": "Knowledge Jobs per Graduate Decline",
+        "threshold": 20.0,
+        "early_threshold": 8.0,
+        "unit": "%",
+        "direction": "decline",
+        "weight": 0.07,
+        "frequency": "quarterly",
+        "rationale": (
+            "Information sector employment divided by college-educated "
+            "labor force. Directly measures whether the knowledge economy "
+            "is creating or destroying demand for graduates. Unlike wages "
+            "(which reflect survivors), this catches structural erosion: "
+            "fewer knowledge jobs chasing more graduates. A 20% decline "
+            "over 3 years would signal the knowledge economy is contracting "
+            "relative to the educated workforce — the demand-side "
+            "displacement signal that wage data misses entirely."
+        ),
+    },
     "labor_share": {
         "label": "Labor Share Decline",
         "threshold": 5.0,
         "early_threshold": 1.7,
         "unit": "pp",
         "direction": "decline",
-        "weight": 0.09,
+        "weight": 0.06,
         "frequency": "quarterly",
         "rationale": (
             "Labor share declined ~5pp over 15 years (2000-2015). "
             "5pp in 3 years = 5x the historical rate."
-        ),
-    },
-    "gdp_per_capita": {
-        "label": "GDP/Capita Growth",
-        "threshold": 12.0,
-        "early_threshold": 4.0,
-        "unit": "%",
-        "direction": "rise",
-        "weight": 0.07,
-        "frequency": "quarterly",
-        "rationale": (
-            "US real GDP/capita grows ~2%/yr historically. "
-            "4%/yr sustained = productivity acceleration."
-        ),
-    },
-    "unemployment": {
-        "label": "College Unemployment Rise",
-        "threshold": 2.0,
-        "early_threshold": 0.7,
-        "unit": "pp",
-        "direction": "rise",
-        "weight": 0.07,
-        "frequency": "quarterly",
-        "rationale": (
-            "College-educated unemployment is typically 2-3%. "
-            "A 2pp rise (to 4-5%) would be structurally abnormal."
         ),
     },
     # LABOUR MARKET HEALTH — the human cost metrics
@@ -112,7 +121,7 @@ TAKEOFF_THRESHOLDS = {
         "early_threshold": 1.0,
         "unit": "pp",
         "direction": "decline",
-        "weight": 0.09,
+        "weight": 0.08,
         "frequency": "quarterly",
         "rationale": (
             "Prime-age (25-54) employment-population ratio is ~80% "
@@ -137,14 +146,27 @@ TAKEOFF_THRESHOLDS = {
             "earliest sentiment indicator of labour market distress."
         ),
     },
-    # AI INVESTMENT SCALE
+    "unemployment": {
+        "label": "College Unemployment Rise",
+        "threshold": 2.0,
+        "early_threshold": 0.7,
+        "unit": "pp",
+        "direction": "rise",
+        "weight": 0.07,
+        "frequency": "quarterly",
+        "rationale": (
+            "College-educated unemployment is typically 2-3%. "
+            "A 2pp rise (to 4-5%) would be structurally abnormal."
+        ),
+    },
+    # AI INVESTMENT SCALE — the cause indicators
     "nvidia": {
         "label": "NVIDIA Quarterly Revenue",
         "threshold": 200000.0,  # $200B/quarter ($800B/yr)
         "early_threshold": 67000.0,  # ~$67B/quarter
         "unit": "$M",
         "direction": "rise",
-        "weight": 0.11,
+        "weight": 0.08,
         "frequency": "quarterly",
         "metric_type": "level",  # Absolute level, not growth rate
         "rationale": (
@@ -154,17 +176,36 @@ TAKEOFF_THRESHOLDS = {
             "the same hardware could power automation or augmentation."
         ),
     },
-    "electricity": {
-        "label": "Electricity Consumption Growth",
-        "threshold": 15.0,
-        "early_threshold": 5.0,
+    "it_equipment": {
+        "label": "IT Equipment Investment Growth",
+        "threshold": 30.0,
+        "early_threshold": 10.0,
         "unit": "%",
         "direction": "rise",
-        "weight": 0.07,
+        "weight": 0.06,
         "frequency": "quarterly",
         "rationale": (
-            "US electricity consumption grew ~1%/yr for decades. "
-            "5%/yr sustained = massive new demand (data centers)."
+            "Real private investment in information processing equipment "
+            "grows ~3-5%/yr historically. 10%/yr sustained (30% over 3 years) "
+            "signals a structural shift toward capital-over-labor. Broader "
+            "than NVIDIA alone (captures all vendors). The hardware side "
+            "of AI capex."
+        ),
+    },
+    "software_investment": {
+        "label": "Software Investment Growth",
+        "threshold": 40.0,
+        "early_threshold": 15.0,
+        "unit": "%",
+        "direction": "rise",
+        "weight": 0.05,
+        "frequency": "quarterly",
+        "rationale": (
+            "Real private investment in software grows ~5-7%/yr historically. "
+            "~12%/yr sustained (40% over 3 years) signals massive capital "
+            "reallocation toward AI/software systems. Captures cloud AI, "
+            "enterprise platforms, SaaS tools — the software side of AI "
+            "capex that hardware metrics miss."
         ),
     },
 }
@@ -172,16 +213,16 @@ TAKEOFF_THRESHOLDS = {
 CONSISTENCY_TARGET = 0.75
 METRIC_CATEGORIES = {
     "Structural Shifts": ["tfp", "occupation_gap", "capital_labor"],
-    "Distribution Indicators": ["labor_share", "gdp_per_capita", "unemployment"],
-    "Labour Market Health": ["prime_age_epop", "quits_rate"],
-    "AI Investment Scale": ["nvidia", "electricity"],
+    "Wage & Distribution": ["median_wages", "info_jobs_per_grad", "labor_share"],
+    "Labour Market Health": ["prime_age_epop", "quits_rate", "unemployment"],
+    "AI Investment Scale": ["nvidia", "it_equipment", "software_investment"],
 }
 
 CATEGORY_ICONS = {
     "Structural Shifts": "🔬",
-    "Distribution Indicators": "📉",
+    "Wage & Distribution": "💰",
     "Labour Market Health": "🏥",
-    "AI Investment Scale": "💰",
+    "AI Investment Scale": "📈",
 }
 
 
@@ -211,7 +252,6 @@ def load_data():
         "graduate_unemployment_rate",
         "graduate_unemployment_rate_processed.csv",
     )
-    elec = load_optional(d, "electricity_consumption", "electricity_consumption_processed.csv")
     nvidia = load_optional(d, "nvidia_revenue", "nvidia_revenue_processed.csv")
     tfp = load_optional(d, "tfp", "tfp_processed.csv")
     cap_lab = load_optional(d, "capital_labor", "capital_labor_processed.csv")
@@ -219,12 +259,27 @@ def load_data():
     biz_apps = load_optional(d, "business_applications", "business_applications_processed.csv")
     epop = load_optional(d, "prime_age_epop", "prime_age_epop_processed.csv")
     quits = load_optional(d, "quits_rate", "quits_rate_processed.csv")
+    it_equip = load_optional(
+        d,
+        "it_equipment_investment",
+        "it_equipment_investment_processed.csv",
+    )
+    median_wages = load_optional(d, "median_wages", "median_wages_processed.csv")
+    info_jobs = load_optional(
+        d,
+        "info_jobs_per_grad",
+        "info_jobs_per_grad_processed.csv",
+    )
+    software_inv = load_optional(
+        d,
+        "software_investment",
+        "software_investment_processed.csv",
+    )
 
     return {
         "labor_share": labor,
         "gdp_per_capita": gdp,
         "unemployment": unemp,
-        "electricity": elec,
         "nvidia": nvidia,
         "tfp": tfp,
         "capital_labor": cap_lab,
@@ -232,6 +287,10 @@ def load_data():
         "business_applications": biz_apps,
         "prime_age_epop": epop,
         "quits_rate": quits,
+        "it_equipment": it_equip,
+        "median_wages": median_wages,
+        "info_jobs_per_grad": info_jobs,
+        "software_investment": software_inv,
     }
 
 
@@ -286,13 +345,15 @@ def compute_takeoff_metrics(datasets):
         "tfp": ("tfp", "tfp_index", False),
         "occupation_gap": ("occupation_q", "displacement_gap", True),
         "capital_labor": ("capital_labor", "capital_labor_ratio", False),
+        "median_wages": ("median_wages", "median_weekly_earnings", False),
+        "info_jobs_per_grad": ("info_jobs_per_grad_q", "info_jobs_per_grad", False),
         "labor_share": ("labor_share", "labor_share_index", True),
-        "gdp_per_capita": ("gdp_per_capita", "real_gdp_per_capita", False),
-        "unemployment": ("unemployment_q", "graduate_unemployment_rate", True),
-        "nvidia": ("nvidia", "revenue_millions", False),
-        "electricity": ("electricity_q", "electricity_consumption", False),
         "prime_age_epop": ("prime_age_epop_q", "prime_age_epop", True),
         "quits_rate": ("quits_rate_q", "quits_rate", True),
+        "unemployment": ("unemployment_q", "graduate_unemployment_rate", True),
+        "nvidia": ("nvidia", "revenue_millions", False),
+        "it_equipment": ("it_equipment", "it_equipment_investment", False),
+        "software_investment": ("software_investment", "software_investment", False),
     }
 
     for key, (ds_key, col, use_abs) in metric_configs.items():
@@ -578,7 +639,48 @@ try:
                 "Red shading = gap widening (displacement signal)"
             )
 
-        st.subheader("📉 Distribution Indicators")
+        st.subheader("💰 Wage & Distribution")
+
+        if data["median_wages"] is not None:
+            st.plotly_chart(
+                make_chart(
+                    data["median_wages"],
+                    "date",
+                    "median_weekly_earnings",
+                    "Real Median Weekly Earnings (constant 1982-84 $)",
+                    {"date": "Date", "median_weekly_earnings": "$ (real)"},
+                    "#2ca02c",
+                ),
+                use_container_width=True,
+            )
+            st.caption(
+                "📊 [FRED LES1252881600Q]"
+                "(https://fred.stlouisfed.org/series/LES1252881600Q)"
+                " — Quarterly, BLS CPS. THE displacement outcome metric. "
+                "Declining real wages during productivity growth = the "
+                "economy growing while workers get poorer."
+            )
+
+        if data["info_jobs_per_grad"] is not None:
+            st.plotly_chart(
+                make_chart(
+                    data["info_jobs_per_grad"],
+                    "date",
+                    "info_jobs_per_grad",
+                    "Knowledge Jobs per 100 Graduates (Info Sector / College Labor Force)",
+                    {"date": "Date", "info_jobs_per_grad": "Jobs per 100 grads"},
+                    "#d62728",
+                ),
+                use_container_width=True,
+            )
+            st.caption(
+                "📊 FRED USINFO / LNS11027662"
+                " — Monthly, BLS. Information sector employment divided "
+                "by college-educated labor force. Declining ratio = fewer "
+                "knowledge jobs chasing more graduates. Unlike wages "
+                "(which reflect survivors), this catches structural "
+                "demand erosion."
+            )
 
         st.plotly_chart(
             make_chart(
@@ -592,33 +694,6 @@ try:
             use_container_width=True,
         )
         st.caption("📊 [FRED PRS85006173](https://fred.stlouisfed.org/series/PRS85006173)")
-
-        st.plotly_chart(
-            make_chart(
-                data["gdp_per_capita"],
-                "date",
-                "real_gdp_per_capita",
-                "Real GDP per Capita",
-                {"date": "Date", "real_gdp_per_capita": "$ (real)"},
-                "#2ca02c",
-            ),
-            use_container_width=True,
-        )
-        st.caption("📊 [FRED A939RX0Q048SBEA](https://fred.stlouisfed.org/series/A939RX0Q048SBEA)")
-
-        if data["unemployment"] is not None:
-            st.plotly_chart(
-                make_chart(
-                    data["unemployment"],
-                    "date",
-                    "graduate_unemployment_rate",
-                    "Unemployment: Bachelor's+ (25+)",
-                    {"date": "Date", "graduate_unemployment_rate": "%"},
-                    "#d62728",
-                ),
-                use_container_width=True,
-            )
-            st.caption("📊 [FRED LNU04027662](https://fred.stlouisfed.org/series/LNU04027662)")
 
         st.subheader("🏥 Labour Market Health")
 
@@ -662,7 +737,21 @@ try:
                 "economy = workers feel trapped."
             )
 
-        st.subheader("💰 AI Investment Scale")
+        if data["unemployment"] is not None:
+            st.plotly_chart(
+                make_chart(
+                    data["unemployment"],
+                    "date",
+                    "graduate_unemployment_rate",
+                    "Unemployment: Bachelor's+ (25+)",
+                    {"date": "Date", "graduate_unemployment_rate": "%"},
+                    "#d62728",
+                ),
+                use_container_width=True,
+            )
+            st.caption("📊 [FRED LNU04027662](https://fred.stlouisfed.org/series/LNU04027662)")
+
+        st.subheader("📈 AI Investment Scale")
 
         if data["nvidia"] is not None:
             st.plotly_chart(
@@ -689,22 +778,42 @@ try:
                 "indicators. (Acemoglu & Johnson, 2023)"
             )
 
-        if data["electricity"] is not None:
+        if data["it_equipment"] is not None:
             st.plotly_chart(
                 make_chart(
-                    data["electricity"],
+                    data["it_equipment"],
                     "date",
-                    "electricity_consumption",
-                    "Electricity Consumption (Million kWh)",
-                    {"date": "Date", "electricity_consumption": "Index"},
+                    "it_equipment_investment",
+                    "Real Private Investment: Information Processing Equipment ($B, 2017)",
+                    {"date": "Date", "it_equipment_investment": "Billions (chained 2017$)"},
+                    "#636EFA",
+                ),
+                use_container_width=True,
+            )
+            st.caption(
+                "📊 [FRED Y033RC1Q027SBEA]"
+                "(https://fred.stlouisfed.org/series/Y033RC1Q027SBEA)"
+                " — Quarterly, BEA. Hardware side of AI capex — servers, "
+                "GPUs, networking gear. Broader than NVIDIA alone."
+            )
+
+        if data["software_investment"] is not None:
+            st.plotly_chart(
+                make_chart(
+                    data["software_investment"],
+                    "date",
+                    "software_investment",
+                    "Real Private Investment: Software ($B, 2017)",
+                    {"date": "Date", "software_investment": "Billions (chained 2017$)"},
                     "#9467bd",
                 ),
                 use_container_width=True,
             )
             st.caption(
-                "📊 [EIA Table 7.06]"
-                "(https://www.eia.gov/totalenergy/data/browser/?tbl=T07.06)"
-                " — Total Retail Electricity Sales"
+                "📊 [FRED B985RC1Q027SBEA]"
+                "(https://fred.stlouisfed.org/series/B985RC1Q027SBEA)"
+                " — Quarterly, BEA. Software side of AI capex — cloud AI, "
+                "enterprise platforms, SaaS tools."
             )
 
         # --- Reinstatement & Compensation Indicators ---
@@ -783,7 +892,6 @@ try:
         # Prepare aligned datasets for scoring
         scoring_data = {
             "labor_share": data["labor_share"],
-            "gdp_per_capita": data["gdp_per_capita"],
             "nvidia": data["nvidia"],
             "tfp": data["tfp"],
             "capital_labor": data["capital_labor"],
@@ -791,14 +899,22 @@ try:
 
         if data["unemployment"] is not None:
             scoring_data["unemployment_q"] = align_to_quarterly(data["unemployment"])
-        if data["electricity"] is not None:
-            scoring_data["electricity_q"] = align_to_quarterly(data["electricity"])
         if data["occupation"] is not None:
             scoring_data["occupation_q"] = align_to_quarterly(data["occupation"])
         if data["prime_age_epop"] is not None:
             scoring_data["prime_age_epop_q"] = align_to_quarterly(data["prime_age_epop"])
         if data["quits_rate"] is not None:
             scoring_data["quits_rate_q"] = align_to_quarterly(data["quits_rate"])
+        if data["it_equipment"] is not None:
+            scoring_data["it_equipment"] = data["it_equipment"]
+        if data["median_wages"] is not None:
+            scoring_data["median_wages"] = data["median_wages"]
+        if data["info_jobs_per_grad"] is not None:
+            scoring_data["info_jobs_per_grad_q"] = align_to_quarterly(
+                data["info_jobs_per_grad"]
+            )
+        if data["software_investment"] is not None:
+            scoring_data["software_investment"] = data["software_investment"]
 
         takeoff_metrics = compute_takeoff_metrics(scoring_data)
         takeoff_score = compute_takeoff_score(takeoff_metrics)
@@ -932,7 +1048,8 @@ try:
             bar_df = pd.DataFrame(bar_data)
             cat_colors = {
                 "Structural Shifts": "#636EFA",
-                "Distribution Indicators": "#EF553B",
+                "Wage & Distribution": "#EF553B",
+                "Labour Market Health": "#AB63FA",
                 "AI Investment Scale": "#00CC96",
             }
             fig_bars = px.bar(
@@ -1144,13 +1261,15 @@ try:
                     "tfp": 1.0,
                     "occupation_gap": 0.5,
                     "capital_labor": 1.5,
+                    "median_wages": 0.5,  # Modest real wage growth
+                    "info_jobs_per_grad": 2.0,  # Slow decline, demographics
                     "labor_share": 0.3,
-                    "gdp_per_capita": 2.5,
-                    "unemployment": 0.1,
-                    "nvidia": 100000,  # Level: $100B/qtr plateau
-                    "electricity": 1.0,
                     "prime_age_epop": 0.2,
                     "quits_rate": 0.05,
+                    "unemployment": 0.1,
+                    "nvidia": 100000,  # Level: $100B/qtr plateau
+                    "it_equipment": 4.0,  # ~4%/yr, near historical norm
+                    "software_investment": 6.0,  # ~6%/yr, near historical
                 },
             },
             "Agent Revolution": {
@@ -1163,13 +1282,15 @@ try:
                     "tfp": 2.5,
                     "occupation_gap": 4.0,
                     "capital_labor": 4.0,
+                    "median_wages": 1.0,  # Stagnating real wages
+                    "info_jobs_per_grad": 5.0,  # Knowledge jobs shrinking fast
                     "labor_share": 1.5,
-                    "gdp_per_capita": 4.0,
-                    "unemployment": 0.8,
-                    "nvidia": 200000,  # Level: $200B/qtr
-                    "electricity": 2.5,
                     "prime_age_epop": 0.8,
                     "quits_rate": 0.2,
+                    "unemployment": 0.8,
+                    "nvidia": 200000,  # Level: $200B/qtr
+                    "it_equipment": 8.0,  # ~8%/yr, double historical
+                    "software_investment": 12.0,  # ~12%/yr, double historical
                 },
             },
             "Physical AI": {
@@ -1183,13 +1304,15 @@ try:
                     "tfp": 4.0,
                     "occupation_gap": 6.0,
                     "capital_labor": 5.0,
+                    "median_wages": 2.0,  # Real wages declining
+                    "info_jobs_per_grad": 8.0,  # Knowledge economy contracting
                     "labor_share": 2.5,
-                    "gdp_per_capita": 5.0,
-                    "unemployment": 1.0,
-                    "nvidia": 350000,  # Level: $350B/qtr
-                    "electricity": 6.0,
                     "prime_age_epop": 1.5,
                     "quits_rate": 0.35,
+                    "unemployment": 1.0,
+                    "nvidia": 350000,  # Level: $350B/qtr
+                    "it_equipment": 12.0,  # ~12%/yr, massive reallocation
+                    "software_investment": 16.0,  # ~16%/yr, unprecedented
                 },
             },
         }
@@ -1200,7 +1323,10 @@ try:
 
         # Project scores at future years
         proj_years = [2027, 2028, 2029, 2030, 2032, 2035, 2040]
-        current_nvidia = 68127.0  # Current NVIDIA $M/quarter
+        # Current values for level-type metrics
+        current_levels = {
+            "nvidia": 68127.0,  # Current NVIDIA $M/quarter
+        }
 
         score_rows = []
         metric_rows = []
@@ -1223,10 +1349,11 @@ try:
                     rate = rates.get(key, 0)
 
                     if m_type == "level":
+                        current_val = current_levels.get(key, rate * 0.5)
                         ramp = min(1.0, years_out / 5.0)
-                        proj_val = current_nvidia + (rate - current_nvidia) * ramp
+                        proj_val = current_val + (rate - current_val) * ramp
                         progress = max(0.0, proj_val / threshold)
-                        cons = 0.95 if rate > current_nvidia else 0.5
+                        cons = 0.95 if rate > current_val else 0.5
                     else:
                         proj_3yr = rate * eff_years
                         progress = max(0.0, proj_3yr / threshold)
@@ -1420,7 +1547,7 @@ try:
         transformation?** The answer can be "no" — and that is a
         valid, informative result.
 
-        The tracker defines **8 metrics** across three categories,
+        The tracker defines **12 metrics** across four categories,
         each with two threshold tiers:
         - **Early warning** (~1/3 of full threshold): calibrated to
           near-term AI productivity estimates (Acemoglu, 2024)
@@ -1503,13 +1630,15 @@ try:
         | TFP | FRED | MFPNFBS | Annual |
         | Capital-Labor | FRED | MPU4910042/MPU4910052 | Annual |
         | Job Displacement | FRED | CPS/CES occupation groups | Monthly→Q |
+        | Median Wages | FRED | LES1252881600Q | Quarterly |
+        | Knowledge Jobs/Grad | FRED | USINFO/LNS11027662 | Monthly→Q |
         | Labor Share | FRED | PRS85006173 | Quarterly |
-        | GDP/Capita | FRED | A939RX0Q048SBEA | Quarterly |
-        | Unemployment | FRED | LNU04027662 | Monthly→Q |
-        | NVIDIA Revenue | SEC EDGAR | CIK 0001045810 | Quarterly |
-        | Electricity | EIA | Table 7.06 (ESTCPUS) | Monthly→Q |
         | Prime-Age EPOP | FRED | LNS12300060 | Monthly→Q |
         | Quits Rate | FRED (JOLTS) | JTSQUR | Monthly→Q |
+        | Unemployment | FRED | LNU04027662 | Monthly→Q |
+        | NVIDIA Revenue | SEC EDGAR | CIK 0001045810 | Quarterly |
+        | IT Equipment | FRED | Y033RC1Q027SBEA | Quarterly |
+        | Software Invest. | FRED | B985RC1Q027SBEA | Quarterly |
         """)
 
 except FileNotFoundError as e:
@@ -1518,4 +1647,4 @@ except KeyError as e:
     st.error(f"Data schema mismatch — column missing: {e}")
 
 st.divider()
-st.markdown("*Data: FRED, BLS, SEC EDGAR XBRL*")
+st.markdown("*Data: FRED, BLS, BEA, SEC EDGAR XBRL*")
